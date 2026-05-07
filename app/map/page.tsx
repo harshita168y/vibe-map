@@ -33,6 +33,7 @@ type NearbyPlace = {
   address: string;
   latitude: number;
   longitude: number;
+  distanceMeters?: number;
 };
 
 type SearchResult = NearbyPlace;
@@ -41,7 +42,17 @@ type UserLocation = {
   latitude: number;
   longitude: number;
 };
-
+type MapboxPlaceFeature = {
+  geometry: {
+    coordinates: [number, number];
+  };
+  properties: {
+    mapbox_id: string;
+    name?: string;
+    full_address?: string;
+    place_formatted?: string;
+  };
+};
 function getDistanceKm(
   from: UserLocation,
   to: { latitude: number; longitude: number }
@@ -122,13 +133,15 @@ export default function MapPage() {
           .filter((place) => place.vibes.length > 0);
 
   const placesNearMe = userLocation
-    ? [...filteredPlaces].sort(
+  ? [...filteredPlaces]
+      .filter((place) => getDistanceKm(userLocation, place) <= 5)
+      .sort(
         (a, b) =>
           getDistanceKm(userLocation, a) - getDistanceKm(userLocation, b)
       )
-    : filteredPlaces;
+  : [];
 
-  const totalVibes = filteredPlaces.reduce(
+  const totalVibes = placesNearMe.reduce(
     (sum, place) => sum + place.vibes.length,
     0
   );
@@ -223,60 +236,137 @@ export default function MapPage() {
       }
     );
   };
+  
+ const findNearbyPlaces = async () => {
+  if (!navigator.geolocation) {
+    showPopup("Location is not available in this browser.");
+    return;
+  }
 
-  const findNearbyPlaces = async () => {
-    if (!navigator.geolocation) {
-      showPopup("Location is not available in this browser.");
-      return;
-    }
+  setIsPostOpen(true);
+  setIsFindingPlaces(true);
+  setSelectedNearbyPlace(null);
+  setNearbyPlaces([]);
 
-    setIsPostOpen(true);
-    setIsFindingPlaces(true);
-    setSelectedNearbyPlace(null);
-    setNearbyPlaces([]);
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const lng = position.coords.longitude;
+      const lat = position.coords.latitude;
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lng = position.coords.longitude;
-        const lat = position.coords.latitude;
+      try {
+        const categories = [
+            "restaurant",
+            "cafe",
+            "bar",
+            "pub",
+            "nightclub",
+            "hotel",
+            "hostel",
+            "shopping_mall",
+            "supermarket",
+            "convenience_store",
+            "clothing_store",
+            "shoe_store",
+            "jewelry_store",
+            "beauty_salon",
+            "spa",
+            "gym",
+            "park",
+            "museum",
+            "art_gallery",
+            "movie_theater",
+            "tourist_attraction",
+            "library",
+            "book_store",
+            "university",
+            "school",
+            "hospital",
+            "pharmacy",
+            "doctor",
+            "train_station",
+            "bus_station",
+            "subway_station",
+            "airport",
+            "parking",
+            "gas_station",
+            "bank",
+            "atm",
+            "bakery",
+            "coffee",
+            "beach",
+            "stadium",
+            "sports_complex",
+          ];
 
-        try {
-          const response = await fetch(
-           `https://api.mapbox.com/geocoding/v5/mapbox.places/temple%20bar.json?proximity=${lng},${lat}&types=poi,address,place&limit=10&access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`
+                  const requests = await Promise.all(
+            categories.map((category) =>
+              fetch(
+                `https://api.mapbox.com/search/searchbox/v1/category/${category}?proximity=${lng},${lat}&limit=10&access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`
+              ).then((res) => res.json())
+            )
           );
 
-          const data = await response.json();
+        const allFeatures: MapboxPlaceFeature[] = requests.flatMap(
+          (data) => data.features || []
+        );
 
-          const results: NearbyPlace[] = (data.features || []).map(
-            (feature: {
-              id: string;
-              text: string;
-              place_name: string;
-              center: [number, number];
-            }) => ({
-              id: feature.id,
-              name: feature.text,
-              address: feature.place_name,
-              longitude: feature.center[0],
-              latitude: feature.center[1],
-            })
-          );
+        const uniqueFeatures = Array.from(
+          new Map(
+            allFeatures.map((feature) => [
+              feature.properties.mapbox_id,
+              feature,
+            ])
+          ).values()
+        );
 
-          setNearbyPlaces(results);
-        } catch (error) {
-          console.error("Nearby places error:", error);
-          showPopup("Could not find nearby places.");
-        } finally {
-          setIsFindingPlaces(false);
-        }
-      },
-      () => {
+        const results: NearbyPlace[] = uniqueFeatures
+          .map((feature) => {
+            const [featureLng, featureLat] = feature.geometry.coordinates;
+
+            const distanceMeters =
+              Math.sqrt(
+                Math.pow((featureLat - lat) * 111000, 2) +
+                  Math.pow(
+                    (featureLng - lng) *
+                      111000 *
+                      Math.cos((lat * Math.PI) / 180),
+                    2
+                  )
+              );
+
+           return {
+              id: feature.properties.mapbox_id,
+              name: feature.properties.name || "Nearby place",
+              address:
+                feature.properties.full_address ||
+                feature.properties.place_formatted ||
+                "Nearby place",
+              longitude: featureLng,
+              latitude: featureLat,
+              distanceMeters,
+            };
+          })
+          .filter((place) => place.distanceMeters <= 700)
+          .sort(
+            (a, b) =>
+              (a.distanceMeters || 0) - (b.distanceMeters || 0)
+          )
+          .slice(0, 12);
+
+        setNearbyPlaces(results);
+      } catch (error) {
+        console.error("Nearby places error:", error);
+        showPopup("Could not find nearby places.");
+      } finally {
         setIsFindingPlaces(false);
-        showPopup("Please allow location access to post a vibe.");
       }
-    );
-  };
-
+    },
+    () => {
+      setIsFindingPlaces(false);
+      showPopup("Please allow location access to post a vibe.");
+    }
+  );
+};
   const handlePostVibe = async () => {
     if (!selectedNearbyPlace) {
       showPopup("Choose a nearby place or use your current location.");
