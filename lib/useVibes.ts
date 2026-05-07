@@ -2,30 +2,61 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Vibe } from "@/types/vibe";
+import type { PlaceWithVibes } from "@/types/vibe";
 
 export function useVibes() {
-  const [vibes, setVibes] = useState<Vibe[]>([]);
+  const [places, setPlaces] = useState<PlaceWithVibes[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchVibes() {
+    async function fetchPlacesWithVibes() {
       const { data, error } = await supabase
-        .from("vibes")
-        .select("*")
+        .from("places")
+        .select(`
+          *,
+          vibes (*)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error fetching vibes:", error);
+        console.error("Error fetching places:", error);
       } else {
-        setVibes(data || []);
+        const activePlaces = (data || [])
+          .map((place) => ({
+            ...place,
+            vibes: (place.vibes || []).filter(
+              (vibe: { expires_at: string }) =>
+                new Date(vibe.expires_at).getTime() > Date.now()
+            ),
+          }))
+          .filter((place) => place.vibes.length > 0);
+
+        setPlaces(activePlaces as PlaceWithVibes[]);
       }
 
       setLoading(false);
     }
 
-    fetchVibes();
+    fetchPlacesWithVibes();
+
+    const channel = supabase
+      .channel("live-vibes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "vibes" },
+        fetchPlacesWithVibes
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "places" },
+        fetchPlacesWithVibes
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  return { vibes, loading };
+  return { places, loading };
 }
