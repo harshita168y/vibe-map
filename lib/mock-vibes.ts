@@ -1,0 +1,43 @@
+// export const mockVibes = [
+//   {
+//     id: 1,
+//     title: "Romantic",
+//     emoji: "💞",
+//     vibes: 276,
+//     place: "Temple Bar",
+//     distance: "0.4 mi",
+//     status: "Busy now",
+//     color: "bg-pink-100",
+//     textColor: "text-pink-600",
+//     x: "18%",
+//     y: "30%",
+//   },
+
+//   {
+//     id: 2,
+//     title: "Chill",
+//     emoji: "😎",
+//     vibes: 143,
+//     place: "Phoenix Park",
+//     distance: "1.2 mi",
+//     status: "Peaceful",
+//     color: "bg-blue-100",
+//     textColor: "text-blue-600",
+//     x: "60%",
+//     y: "45%",
+//   },
+
+//   {
+//     id: 3,
+//     title: "Music",
+//     emoji: "🎵",
+//     vibes: 189,
+//     place: "Wigwam",
+//     distance: "0.8 mi",
+//     status: "Live music",
+//     color: "bg-purple-100",
+//     textColor: "text-purple-600",
+//     x: "40%",
+//     y: "60%",
+//   },
+// ];

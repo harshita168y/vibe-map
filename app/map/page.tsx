@@ -1,30 +1,31 @@
-import { AppShell } from "@/components/layout/AppShell";
-import { MapPin, Search, Navigation, Plus } from "lucide-react";
+"use client";
 
-const vibes = [
-  { label: "Romantic", emoji: "💞", count: 276, x: "12%", y: "28%" },
-  { label: "Good music", emoji: "🎵", count: 189, x: "38%", y: "42%" },
-  { label: "Chill", emoji: "😎", count: 143, x: "67%", y: "34%" },
-  { label: "Cozy", emoji: "☕", count: 98, x: "18%", y: "55%" },
-];
+import { AppShell } from "@/components/layout/AppShell";
+import { VibeMap } from "@/components/map/VibeMap";
+import { useVibes } from "@/lib/useVibes";
+import { Search, Navigation, Plus } from "lucide-react";
 
 export default function MapPage() {
+  const { vibes } = useVibes();
+
   return (
     <AppShell>
       <main className="relative h-screen overflow-hidden bg-gradient-to-br from-blue-100 via-pink-50 to-purple-100">
-        <div className="absolute inset-0 opacity-70">
-          <div className="h-full w-full bg-[linear-gradient(to_right,#ffffff80_1px,transparent_1px),linear-gradient(to_bottom,#ffffff80_1px,transparent_1px)] bg-[size:42px_42px]" />
+        <div className="absolute inset-0">
+          <VibeMap />
         </div>
 
         <div className="absolute left-5 right-5 top-5 z-20 flex items-center gap-3">
           <div className="flex flex-1 items-center gap-3 rounded-full bg-white/90 px-4 py-3 shadow-xl backdrop-blur-xl">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-xl">
-              🙂 
+              🙂
             </div>
+
             <div className="flex-1">
               <p className="text-xs font-medium text-zinc-400">Current city</p>
               <h1 className="text-lg font-bold">Dublin</h1>
             </div>
+
             <Search size={22} />
           </div>
 
@@ -33,30 +34,31 @@ export default function MapPage() {
           </button>
         </div>
 
-        {vibes.map((vibe) => (
+        {vibes.map((vibe, index) => (
           <div
-            key={vibe.label}
+            key={vibe.id}
             className="absolute z-10"
-            style={{ left: vibe.x, top: vibe.y }}
+            style={{
+              left: `${15 + index * 22}%`,
+              top: `${30 + index * 8}%`,
+            }}
           >
             <div className="relative">
               <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full bg-pink-300/40" />
+
               <div className="relative flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-xl">
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-pink-100 text-xl">
-                  {vibe.emoji}
+                  ✨
                 </span>
+
                 <div>
-                  <p className="text-sm font-bold">{vibe.label}</p>
-                  <p className="text-xs text-zinc-400">{vibe.count} vibes</p>
+                  <p className="text-sm font-bold">{vibe.vibe_tag}</p>
+                  <p className="text-xs text-zinc-400">{vibe.place_name}</p>
                 </div>
               </div>
             </div>
           </div>
         ))}
-
-        <div className="absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-blue-500/20">
-          <div className="h-5 w-5 rounded-full border-4 border-white bg-blue-500 shadow-lg" />
-        </div>
 
         <section className="absolute bottom-0 left-0 right-0 z-30 rounded-t-[2.5rem] bg-white p-5 shadow-2xl">
           <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-zinc-200" />
@@ -73,7 +75,7 @@ export default function MapPage() {
             </div>
 
             <div className="rounded-3xl bg-pink-100 px-4 py-3 text-center">
-              <p className="text-2xl font-black">276</p>
+              <p className="text-2xl font-black">{vibes.length}</p>
               <p className="text-xs text-zinc-500">vibes</p>
             </div>
           </div>
