@@ -39,6 +39,17 @@ VibeMap lets people instantly see the mood of places around the world — from c
 - Mapbox GL JS
 - Mapbox Geocoding API
 ---
+### APPLICATION SCREENSHOT
+
+<img width="792" height="987" alt="Screenshot (7)" src="https://github.com/user-attachments/assets/ebb96286-9526-4617-b7ae-1ec1dc1b3489" />
+
+<img width="565" height="984" alt="Screenshot (6)" src="https://github.com/user-attachments/assets/e94fd37b-3c31-45ad-995d-1c857f97b476" />
+
+<img width="581" height="996" alt="Screenshot (5)" src="https://github.com/user-attachments/assets/6ad6f3e5-4ab3-4cb0-97b6-93f90b1855a9" />
+
+
+
+---
 
 ### Author
 
