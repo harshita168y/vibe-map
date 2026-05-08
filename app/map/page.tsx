@@ -108,7 +108,7 @@ export default function MapPage() {
   const [customTag, setCustomTag] = useState("");
   const [vibeText, setVibeText] = useState("");
   const [isPosting, setIsPosting] = useState(false);
-
+  const [mapCenter, setMapCenter] = useState<UserLocation | null>(null);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [selectedNearbyPlace, setSelectedNearbyPlace] =
     useState<NearbyPlace | null>(null);
@@ -153,10 +153,19 @@ export default function MapPage() {
       )
   : [];
 
-  const totalVibes = placesNearMe.reduce(
-    (sum, place) => sum + place.vibes.length,
-    0
-  );
+  // const totalVibes = placesNearMe.reduce(
+  //   (sum, place) => sum + place.vibes.length,
+  //   0
+  // );
+
+  const activeCountPlaces = mapCenter
+  ? filteredPlaces.filter((place) => getDistanceKm(mapCenter, place) <= 5)
+  : filteredPlaces;
+
+const totalVibes = activeCountPlaces.reduce(
+  (sum, place) => sum + place.vibes.length,
+  0
+);
 
   const selectedVibes =
     selectedPlace?.vibes
@@ -217,6 +226,13 @@ export default function MapPage() {
   const handleSearchResultClick = (result: SearchResult) => {
     setSearchQuery(result.name);
     setSearchResults([]);
+
+
+      setMapCenter({
+        latitude: result.latitude,
+        longitude: result.longitude,
+      });
+
     setMapSearchTarget((prev) => ({
       query: result.name,
       latitude: result.latitude,
@@ -467,7 +483,10 @@ export default function MapPage() {
     setIsExpanded(true);
   }}
   onCityChange={setCity}
-  onUserLocationChange={setUserLocation}
+  onUserLocationChange={(location) => {
+  setUserLocation(location);
+  setMapCenter(location);
+}}
   searchTarget={mapSearchTarget}
 />
           <div
