@@ -40,18 +40,42 @@ export function useVibes() {
     fetchPlacesWithVibes();
 
     const channel = supabase
-      .channel("live-vibes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "vibes" },
-        fetchPlacesWithVibes
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "places" },
-        fetchPlacesWithVibes
-      )
-      .subscribe();
+  .channel("live-vibes")
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "vibes",
+    },
+    () => {
+      fetchPlacesWithVibes();
+    }
+  )
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "places",
+    },
+    () => {
+      fetchPlacesWithVibes();
+    }
+  )
+  .on(
+  "postgres_changes",
+  {
+    event: "*",
+    schema: "public",
+    table: "vibe_reports",
+  },
+   (payload) => {
+    console.log("Report changed:", payload);
+    fetchPlacesWithVibes();
+  }
+)
+  .subscribe();
 
     return () => {
       supabase.removeChannel(channel);

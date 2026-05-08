@@ -9,6 +9,7 @@ import { useVibes } from "@/lib/useVibes";
 import { createVibe } from "@/lib/createVibe";
 import { getDeviceId } from "@/lib/deviceId";
 import type { PlaceWithVibes } from "@/types/vibe";
+import { reportVibe } from "@/lib/reportVibe";
 
 const vibeTags = [
   "All",
@@ -84,6 +85,8 @@ function formatTimeAgo(dateString: string) {
 }
 
 export default function MapPage() {
+  const [reportingVibeId, setReportingVibeId] = useState<string | null>(null);
+  const [selectedReportReason, setSelectedReportReason] = useState("");
   const { places } = useVibes();
   const [popupMessage, setPopupMessage] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -110,6 +113,15 @@ export default function MapPage() {
   const [selectedNearbyPlace, setSelectedNearbyPlace] =
     useState<NearbyPlace | null>(null);
   const [isFindingPlaces, setIsFindingPlaces] = useState(false);
+  const reportReasons = [
+  "Spam",
+  "Hate or harassment",
+  "Sexual content",
+  "Violence or threat",
+  "False information",
+  "Personal information",
+  "Other",
+];
 
   const [mapSearchTarget, setMapSearchTarget] = useState({
     query: "",
@@ -496,7 +508,7 @@ export default function MapPage() {
                   isDarkMode ? "text-zinc-500" : "text-zinc-400"
                 }`}
               >
-                Search city, Eircode, hotel, bar, park
+                Search city, Eircode, places...
               </p>
             </div>
 
@@ -680,6 +692,18 @@ export default function MapPage() {
                     >
                       {vibe.vibe_text || "No comment added"}
                     </p>
+
+                    <button
+                        onClick={() => {
+                          setReportingVibeId(vibe.id);
+                          setSelectedReportReason("");
+                        }}
+                        className={`mt-2 text-xs font-bold underline ${
+                          isDarkMode ? "text-zinc-500" : "text-zinc-400"
+                        }`}
+                      >
+                        Report
+                      </button>
                   </div>
                 ))
               ) : (
@@ -688,7 +712,7 @@ export default function MapPage() {
                     isDarkMode ? "text-zinc-400" : "text-zinc-500"
                   }`}
                 >
-                  No vibes for this filter here.
+                  No vibes for this filter here yet ✨
                 </p>
               )
             ) : placesNearMe.length > 0 ? (
@@ -748,7 +772,7 @@ export default function MapPage() {
                   isDarkMode ? "text-zinc-400" : "text-zinc-500"
                 }`}
               >
-                No active vibes nearby yet. Be the first to post one.
+                No active vibes nearby yet. Be the first to post one ✨
               </p>
             )}
           </div>
@@ -976,6 +1000,94 @@ export default function MapPage() {
       >
         Okay
       </button>
+    </motion.div>
+  </div>
+)}
+{reportingVibeId && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-6 backdrop-blur-sm">
+    <motion.div
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className={`w-full max-w-xs rounded-[2rem] p-5 shadow-2xl ${
+        isDarkMode
+          ? "border border-white/10 bg-[#181A20] text-white"
+          : "bg-white text-zinc-950"
+      }`}
+    >
+      <h3 className="text-center text-lg font-black">Report vibe</h3>
+      <p className="mt-1 text-center text-xs font-medium text-zinc-500">
+        What’s the issue with this vibe?
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {reportReasons.map((reason) => (
+          <button
+            key={reason}
+            onClick={() => setSelectedReportReason(reason)}
+            className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-bold ${
+              selectedReportReason === reason
+                ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+                : isDarkMode
+                ? "bg-[#23252F] text-white"
+                : "bg-zinc-100 text-zinc-900"
+            }`}
+          >
+            {reason}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={() => {
+            setReportingVibeId(null);
+            setSelectedReportReason("");
+          }}
+          className={`flex-1 rounded-2xl py-3 text-sm font-black ${
+            isDarkMode ? "bg-[#23252F] text-white" : "bg-zinc-100 text-zinc-800"
+          }`}
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={async () => {
+            if (!selectedReportReason) {
+              showPopup("Please choose a reason.");
+              return;
+            }
+
+           try {
+              const result = await reportVibe(
+                reportingVibeId,
+                selectedReportReason,
+                getDeviceId()
+              );
+
+              if (result.alreadyReported) {
+                setReportingVibeId(null);
+                setSelectedReportReason("");
+                showPopup("You already reported this vibe.");
+                return;
+              }
+
+              if (!result.ok) {
+                showPopup(result.message || "Could not report this vibe.");
+                return;
+              }
+
+              setReportingVibeId(null);
+              setSelectedReportReason("");
+              showPopup("Thanks. This vibe has been reported.");
+            } catch {
+              showPopup("Could not report this vibe.");
+            }
+                        }}
+          className="flex-1 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 py-3 text-sm font-black text-white"
+        >
+          Submit
+        </button>
+      </div>
     </motion.div>
   </div>
 )}
