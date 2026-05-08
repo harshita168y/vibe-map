@@ -808,11 +808,11 @@ export default function MapPage() {
         </motion.section>
 
         {isPostOpen && (
-          <div className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 backdrop-blur-sm">
             <motion.div
               initial={{ y: 300 }}
               animate={{ y: 0 }}
-              className={`w-full rounded-t-[2.5rem] p-5 shadow-2xl ${
+              className={`mx-auto w-full max-w-md rounded-t-[2.5rem] p-5 shadow-2xl ${
                 isDarkMode
                   ? "border-t border-white/5 bg-[#181A20] text-white"
                   : "bg-white text-zinc-950"
@@ -842,9 +842,17 @@ export default function MapPage() {
                 }`}
               >
                 {isFindingPlaces ? (
-                  <p className="p-3 text-sm font-semibold text-zinc-500">
-                    Finding nearby places...
-                  </p>
+                 <div className="flex items-center gap-3 p-3">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-pink-500 border-t-transparent" />
+
+                      <p
+                        className={`text-sm font-semibold ${
+                          isDarkMode ? "text-zinc-400" : "text-zinc-500"
+                        }`}
+                      >
+                        Finding nearby places...
+                      </p>
+                    </div>
                 ) : nearbyPlaces.length > 0 ? (
                   <>
                     {nearbyPlaces.map((place) => (
