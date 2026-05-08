@@ -430,7 +430,7 @@ export default function MapPage() {
   return (
     <AppShell>
       <main
-        className={`relative h-screen overflow-hidden transition-colors ${
+        className={`relative h-[100dvh] overflow-hidden transition-colors ${
           isDarkMode ? "bg-[#0F1117] text-white" : "bg-zinc-100 text-zinc-950"
         }`}
       >
@@ -590,7 +590,7 @@ export default function MapPage() {
             if (info.offset.y > 80) setIsExpanded(false);
             if (info.offset.y < -80) setIsExpanded(true);
           }}
-          className={`absolute bottom-0 left-0 right-0 z-30 max-h-[62vh] overflow-hidden rounded-t-[2.5rem] px-4 pt-3 pb-4 shadow-2xl backdrop-blur-xl ${
+          className={`absolute bottom-0 left-0 right-0 z-30 max-h-[58dvh]md: max-h-[62dvh] overflow-hidden rounded-t-[2.5rem] px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-xl ${
             isDarkMode
               ? "border-t border-white/5 bg-[#181A20]/90"
               : "bg-white/90"
@@ -808,7 +808,7 @@ export default function MapPage() {
         </motion.section>
 
         {isPostOpen && (
-          <div className="absolute inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm">
             <motion.div
               initial={{ y: 300 }}
               animate={{ y: 0 }}
