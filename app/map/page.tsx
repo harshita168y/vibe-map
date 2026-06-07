@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, X } from "lucide-react";
@@ -53,6 +52,41 @@ type MapboxPlaceFeature = {
     full_address?: string;
     place_formatted?: string;
   };
+};
+
+type MapboxSearchBoxSuggestion = {
+  mapbox_id: string;
+  name: string;
+  full_address?: string;
+  place_formatted?: string;
+  feature_type?: string; // add this line
+  coordinate?: {
+    longitude: number;
+    latitude: number;
+  };
+};
+
+type MapboxSearchBoxSuggestResponse = {
+  suggestions?: MapboxSearchBoxSuggestion[];
+};
+
+type MapboxGeocodingFeature = {
+  id: string;
+  text: string;
+  place_name: string;
+  center: [number, number];
+};
+
+type MapboxGeocodingResponse = {
+  features?: MapboxGeocodingFeature[];
+};
+
+type MapboxRetrieveResponse = {
+  features?: {
+    geometry: {
+      coordinates: [number, number];
+    };
+  }[];
 };
 function getDistanceKm(
   from: UserLocation,
@@ -153,11 +187,6 @@ export default function MapPage() {
       )
   : [];
 
-  // const totalVibes = placesNearMe.reduce(
-  //   (sum, place) => sum + place.vibes.length,
-  //   0
-  // );
-
   const activeCountPlaces = mapCenter
   ? filteredPlaces.filter((place) => getDistanceKm(mapCenter, place) <= 5)
   : filteredPlaces;
@@ -178,75 +207,81 @@ const totalVibes = activeCountPlaces.reduce(
           new Date(a.created_at).getTime()
       ) || [];
 
-  const handleSearch = async () => {
-    const query = searchQuery.trim();
-    if (!query) return;
+const handleSearch = async () => {
+  const query = searchQuery.trim();
+  if (!query) return;
 
-    try {
-      setIsSearchingPlaces(true);
+  try {
+    setIsSearchingPlaces(true);
 
-      const proximity = userLocation
-        ? `&proximity=${userLocation.longitude},${userLocation.latitude}`
-        : "";
+    const params = new URLSearchParams({
+      query,
+    });
 
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-          query
-        )}.json?types=poi,place,postcode,address&limit=8${proximity}&access_token=${
-          process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-        }`
-      );
+    if (userLocation) {
+      params.set("lat", String(userLocation.latitude));
+      params.set("lng", String(userLocation.longitude));
+    }
 
-      const data = await response.json();
+    const response = await fetch(`/api/search-places?${params.toString()}`);
 
-      const results: SearchResult[] = (data.features || []).map(
-        (feature: {
-          id: string;
-          text: string;
-          place_name: string;
-          center: [number, number];
-        }) => ({
-          id: feature.id,
-          name: feature.text,
-          address: feature.place_name,
-          longitude: feature.center[0],
-          latitude: feature.center[1],
-        })
-      );
-
-      setSearchResults(results);
-    } catch (error) {
-      console.error("Search error:", error);
+    if (!response.ok) {
       showPopup("Could not search places.");
-    } finally {
-      setIsSearchingPlaces(false);
+      return;
+    }
+
+    const results = (await response.json()) as SearchResult[];
+
+    setSearchResults(results);
+  } catch (error) {
+    console.error("Search error:", error);
+    showPopup("Could not search places.");
+  } finally {
+    setIsSearchingPlaces(false);
+  }
+};
+  const handleSearchResultClick = async (result: SearchResult) => {
+    try {
+      let latitude = result.latitude;
+      let longitude = result.longitude;
+
+      if (!latitude || !longitude) {
+        const response = await fetch(
+          `https://api.mapbox.com/search/searchbox/v1/retrieve/${result.id}?session_token=${crypto.randomUUID()}&access_token=${
+            process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+          }`
+        );
+        const data = (await response.json()) as MapboxRetrieveResponse;
+        const feature = data.features?.[0];
+        if (!feature) {
+          showPopup("Could not open this place.");
+          return;
+        }
+        longitude = feature.geometry.coordinates[0];
+        latitude = feature.geometry.coordinates[1];
+      }
+      setSearchQuery(result.name);
+      setSearchResults([]);
+      setMapCenter({
+        latitude,
+        longitude,
+      });
+      setMapSearchTarget((prev) => ({
+        query: result.name,
+        latitude,
+        longitude,
+        searchId: prev.searchId + 1,
+      }));
+    } catch (error) {
+      console.error("Retrieve place error:", error);
+      showPopup("Could not open this place.");
     }
   };
-
-  const handleSearchResultClick = (result: SearchResult) => {
-    setSearchQuery(result.name);
-    setSearchResults([]);
-
-
-      setMapCenter({
-        latitude: result.latitude,
-        longitude: result.longitude,
-      });
-
-    setMapSearchTarget((prev) => ({
-      query: result.name,
-      latitude: result.latitude,
-      longitude: result.longitude,
-      searchId: prev.searchId + 1,
-    }));
-  };
-
   const useCurrentLocationAsPlace = () => {
     if (!navigator.geolocation) {
       showPopup("Location is not available in this browser.");
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const currentPlace: NearbyPlace = {
@@ -263,24 +298,20 @@ const totalVibes = activeCountPlaces.reduce(
         showPopup("Please allow location access.");
       }
     );
-  };
-  
+  }; 
  const findNearbyPlaces = async () => {
   if (!navigator.geolocation) {
     showPopup("Location is not available in this browser.");
     return;
   }
-
   setIsPostOpen(true);
   setIsFindingPlaces(true);
   setSelectedNearbyPlace(null);
   setNearbyPlaces([]);
-
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       const lng = position.coords.longitude;
       const lat = position.coords.latitude;
-
       try {
         const categories = [
             "restaurant",
@@ -325,7 +356,6 @@ const totalVibes = activeCountPlaces.reduce(
             "stadium",
             "sports_complex",
           ];
-
                   const requests = await Promise.all(
             categories.map((category) =>
               fetch(
@@ -333,11 +363,9 @@ const totalVibes = activeCountPlaces.reduce(
               ).then((res) => res.json())
             )
           );
-
         const allFeatures: MapboxPlaceFeature[] = requests.flatMap(
           (data) => data.features || []
         );
-
         const uniqueFeatures = Array.from(
           new Map(
             allFeatures.map((feature) => [
@@ -346,7 +374,6 @@ const totalVibes = activeCountPlaces.reduce(
             ])
           ).values()
         );
-
         const results: NearbyPlace[] = uniqueFeatures
           .map((feature) => {
             const [featureLng, featureLat] = feature.geometry.coordinates;
@@ -482,11 +509,13 @@ const totalVibes = activeCountPlaces.reduce(
     setSelectedPlace(place);
     setIsExpanded(true);
   }}
+  
   onCityChange={setCity}
   onUserLocationChange={(location) => {
   setUserLocation(location);
   setMapCenter(location);
 }}
+ onMapCenterChange={setMapCenter}
   searchTarget={mapSearchTarget}
 />
           <div

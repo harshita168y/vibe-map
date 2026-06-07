@@ -29,7 +29,11 @@ type VibeMapProps = {
   selectedPlaceId: string | null;
   onPlaceSelect: (place: PlaceWithVibes) => void;
   onCityChange: (city: string) => void;
-  onUserLocationChange: (location: {
+ onUserLocationChange: (location: {
+    latitude: number;
+    longitude: number;
+  }) => void;
+  onMapCenterChange?: (location: {
     latitude: number;
     longitude: number;
   }) => void;
@@ -47,6 +51,7 @@ export function VibeMap({
   onPlaceSelect,
   onCityChange,
   onUserLocationChange,
+  onMapCenterChange,
   searchTarget,
   isDarkMode,
 }: VibeMapProps) {
@@ -260,6 +265,16 @@ export function VibeMap({
           setZoomLevel(zoom);
         }
       });
+      mapRef.current.on("moveend", () => {
+  const center = mapRef.current?.getCenter();
+
+  if (center) {
+    onMapCenterChange?.({
+      latitude: center.lat,
+      longitude: center.lng,
+    });
+  }
+});
     return () => {
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
