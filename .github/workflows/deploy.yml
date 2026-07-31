@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: eu-north-1
-  ECR_REPOSITORY: vibe-map
+  ECR_REPOSITORY: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/<REPOSITORY_NAME>
   ECS_SERVICE: vibe-map-task-service
   ECS_CLUSTER: your-cluster-name
   ECS_TASK_DEFINITION: vibe-map-task
