@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: eu-north-1
   ECR_REPOSITORY:  ${{ secrets.ECR_REPOSITORY}}
-  ECS_SERVICE: vibe-map-task-service
+  ECS_SERVICE: vibe-map-task-service-tx6me8l0
   ECS_CLUSTER: vibe-map-cluster
   ECS_TASK_DEFINITION: vibe-map-task
 
