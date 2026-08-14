@@ -1,3 +1,5 @@
+require("dotenv").config({ path: ".env.local" });
+
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 
@@ -6,392 +8,98 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const DEMO_PLACES = [
-  // ---------------- DUBLIN ----------------
-  {
-    city: "Dublin",
-    name: "Beanhive Coffee",
-    latitude: 53.3396,
-    longitude: -6.2603,
-  },
-  {
-    city: "Dublin",
-    name: "Keoghs Cafe",
-    latitude: 53.3437,
-    longitude: -6.2595,
-  },
-  {
-    city: "Dublin",
-    name: "Lemon Jelly Cafe",
-    latitude: 53.3478,
-    longitude: -6.2711,
-  },
-  {
-    city: "Dublin",
-    name: "Joy of Cha",
-    latitude: 53.3430,
-    longitude: -6.2657,
-  },
-  {
-    city: "Dublin",
-    name: "Social Fabric Cafe",
-    latitude: 53.3482,
-    longitude: -6.2675,
-  },
+// --------------------------------------------------
+// TEST PLACES
+// --------------------------------------------------
 
-  // ---------------- LIMERICK ----------------
+const PLACES = [
   {
-    city: "Limerick",
-    name: "Cafe Rose",
-    latitude: 52.6638,
-    longitude: -8.6267,
+    name: "Copper Face Jacks",
+    latitude: 53.33544,
+    longitude: -6.26351,
   },
   {
-    city: "Limerick",
-    name: "Story Cafe",
-    latitude: 52.6633,
-    longitude: -8.6285,
-  },
-  {
-    city: "Limerick",
-    name: "Hook & Ladder",
-    latitude: 52.6645,
-    longitude: -8.6238,
-  },
-  {
-    city: "Limerick",
-    name: "Aroma Coffee",
-    latitude: 52.6649,
-    longitude: -8.6258,
-  },
-  {
-    city: "Limerick",
-    name: "Fika Coffee",
-    latitude: 52.6628,
-    longitude: -8.6275,
-  },
-
-  // ---------------- GALWAY ----------------
-  {
-    city: "Galway",
-    name: "An Tobar Nua",
-    latitude: 53.2747,
-    longitude: -9.0566,
-  },
-  {
-    city: "Galway",
-    name: "Esquires Coffee Galway",
-    latitude: 53.2740,
-    longitude: -9.0509,
-  },
-  {
-    city: "Galway",
-    name: "Seacrest Cafe",
-    latitude: 53.2708,
-    longitude: -9.0535,
-  },
-  {
-    city: "Galway",
-    name: "Jungle Cafe Galway",
-    latitude: 53.2728,
-    longitude: -9.0530,
-  },
-  {
-    city: "Galway",
-    name: "Dough Bros",
-    latitude: 53.2734,
-    longitude: -9.0546,
-  },
-
-  // ---------------- CORK ----------------
-  {
-    city: "Cork",
-    name: "Greenwich Cafe",
-    latitude: 51.8985,
-    longitude: -8.4756,
-  },
-  {
-    city: "Cork",
-    name: "Farmgate Cafe",
-    latitude: 51.9000,
-    longitude: -8.4742,
-  },
-  {
-    city: "Cork",
-    name: "Dwyers Garden Cafe",
-    latitude: 51.8989,
-    longitude: -8.4730,
-  },
-  {
-    city: "Cork",
-    name: "Cafe Gusto",
-    latitude: 51.8995,
-    longitude: -8.4764,
-  },
-  {
-    city: "Cork",
-    name: "Liberty Grill",
-    latitude: 51.8974,
-    longitude: -8.4738,
+    name: "D Two",
+    latitude: 53.3359,
+    longitude: -6.2639,
   },
 ];
 
-// ============================================================
-// VIBES
-// ============================================================
+// --------------------------------------------------
+// THREE TEST VIBES
+// --------------------------------------------------
 
 const VIBES = [
   {
-    tag: "Chill",
-    text: "Pretty relaxed here right now ☕",
+    vibe_tag: "🔥 Lively",
+    vibe_text: "The place is buzzing tonight!",
   },
   {
-    tag: "Busy",
-    text: "A little busy but still comfortable",
+    vibe_tag: "🎶 Party",
+    vibe_text: "Music is hitting and the crowd is energetic.",
   },
   {
-    tag: "Lively",
-    text: "Lots of people and good energy 🔥",
-  },
-  {
-    tag: "Social",
-    text: "Feels social and lively right now",
-  },
-  {
-    tag: "Productive",
-    text: "Good spot to sit down and get some work done 💻",
-  },
-  {
-    tag: "Cozy",
-    text: "Cozy atmosphere right now",
-  },
-  {
-    tag: "Relaxed",
-    text: "Nice relaxed atmosphere",
+    vibe_tag: "🍸 Social",
+    vibe_text: "Busy, social and good energy tonight.",
   },
 ];
 
-// ============================================================
-// TIME HELPERS
-// ============================================================
-
-const TIMEZONE = "Europe/Dublin";
-
-function getDublinTimeParts() {
-  const formatter = new Intl.DateTimeFormat("en-IE", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  });
-
-  const parts = formatter.formatToParts(new Date());
-
-  const result = {};
-
-  for (const part of parts) {
-    if (part.type !== "literal") {
-      result[part.type] = part.value;
-    }
-  }
-
-  return {
-    year: Number(result.year),
-    month: Number(result.month),
-    day: Number(result.day),
-    hour: Number(result.hour),
-    minute: Number(result.minute),
-    second: Number(result.second),
-  };
-}
-
-// Convert a Dublin local time to a real UTC timestamp.
-//
-// We use Intl to determine the current Dublin offset so this
-// continues to work during Irish summer/winter time.
-function dublinTimeToUTC(hour, minute = 0) {
-  const now = new Date();
-
-  const formatter = new Intl.DateTimeFormat("en-IE", {
-    timeZone: TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  const parts = formatter.formatToParts(now);
-
-  const values = {};
-
-  for (const part of parts) {
-    if (part.type !== "literal") {
-      values[part.type] = part.value;
-    }
-  }
-
-  const year = Number(values.year);
-  const month = Number(values.month);
-  const day = Number(values.day);
-
-  // Start with a UTC approximation.
-  let guess = new Date(
-    Date.UTC(year, month - 1, day, hour, minute, 0)
-  );
-
-  // Determine the Dublin offset at this approximate time.
-  const offsetFormatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: TIMEZONE,
-    timeZoneName: "longOffset",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const offsetParts = offsetFormatter.formatToParts(guess);
-
-  const offsetPart = offsetParts.find(
-    (part) => part.type === "timeZoneName"
-  );
-
-  const offsetString = offsetPart?.value || "GMT+00:00";
-
-  const match = offsetString.match(
-    /GMT([+-])(\d{2}):(\d{2})/
-  );
-
-  let offsetMinutes = 0;
-
-  if (match) {
-    const sign = match[1] === "+" ? 1 : -1;
-
-    offsetMinutes =
-      sign *
-      (Number(match[2]) * 60 + Number(match[3]));
-  }
-
-  return new Date(
-    guess.getTime() - offsetMinutes * 60 * 1000
-  );
-}
-
-function getExpirationTime() {
-  return dublinTimeToUTC(17, 0).toISOString();
-}
-
-function getCurrentTime() {
-  return dublinTimeToUTC(
-    getDublinTimeParts().hour,
-    getDublinTimeParts().minute
-  ).toISOString();
-}
-
-// ============================================================
-// RANDOM VIBE
-// ============================================================
-
-function getRandomVibe() {
-  return VIBES[
-    Math.floor(Math.random() * VIBES.length)
-  ];
-}
-
-// ============================================================
-// FIND OR CREATE PLACE
-// ============================================================
+// --------------------------------------------------
+// CREATE / FIND PLACE
+// --------------------------------------------------
 
 async function getOrCreatePlace(place) {
-  // Try to find existing place by name.
-  const { data: existingPlace, error: findError } =
+  const { data: existing, error: findError } =
     await supabase
       .from("places")
-      .select("id, name, latitude, longitude")
+      .select("id")
       .eq("name", place.name)
       .maybeSingle();
 
   if (findError) {
-    throw new Error(
-      `Error finding ${place.name}: ${findError.message}`
-    );
+    throw findError;
   }
 
-  if (existingPlace) {
-    console.log(
-      `✓ Found existing place: ${place.name}`
-    );
-
-    return existingPlace.id;
+  if (existing) {
+    console.log(`Found: ${place.name}`);
+    return existing.id;
   }
 
-  // Generate UUID ourselves.
-  const placeId = crypto.randomUUID();
+  const id = crypto.randomUUID();
 
-  const { data: newPlace, error: insertError } =
-    await supabase
-      .from("places")
-      .insert({
-        id: placeId,
-        name: place.name,
-        latitude: place.latitude,
-        longitude: place.longitude,
-        mapbox_place_id: null,
-        created_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
-
-  if (insertError) {
-    throw new Error(
-      `Error creating ${place.name}: ${insertError.message}`
-    );
-  }
-
-  console.log(
-    `+ Created place: ${place.name}`
-  );
-
-  return newPlace.id;
-}
-
-// ============================================================
-// REMOVE PREVIOUS DEMO VIBE
-// ============================================================
-
-async function removePreviousDemoVibe(placeId) {
-  /*
-   * Since demo vibes have user_id = NULL and device_id = NULL,
-   * we use those fields to identify the seeded rows.
-   *
-   * IMPORTANT:
-   * This assumes you don't have normal anonymous vibes where
-   * BOTH user_id and device_id are NULL.
-   */
-
-  const { error } = await supabase
-    .from("vibes")
-    .delete()
-    .eq("place_id", placeId)
-    .is("user_id", null)
-    .is("device_id", null);
+  const { data, error } = await supabase
+    .from("places")
+    .insert({
+      id,
+      name: place.name,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      mapbox_place_id: null,
+      created_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
 
   if (error) {
-    throw new Error(
-      `Error removing previous demo vibe: ${error.message}`
-    );
+    throw error;
   }
+
+  console.log(`Created: ${place.name}`);
+
+  return data.id;
 }
 
-// ============================================================
-// CREATE VIBE
-// ============================================================
+// --------------------------------------------------
+// INSERT VIBE
+// --------------------------------------------------
 
-async function createDemoVibe(placeId, placeName) {
-  const vibe = getRandomVibe();
+async function insertVibe(placeId, vibe) {
+  const now = new Date();
 
-  const createdAt = getCurrentTime();
-  const expiresAt = getExpirationTime();
+  // For THIS TEST, keep the vibe alive for 3 hours.
+  const expiresAt = new Date(
+    now.getTime() + 3 * 60 * 60 * 1000
+  );
 
   const { error } = await supabase
     .from("vibes")
@@ -400,121 +108,58 @@ async function createDemoVibe(placeId, placeName) {
 
       place_id: placeId,
 
-      vibe_tag: vibe.tag,
+      vibe_tag: vibe.vibe_tag,
 
-      vibe_text: vibe.text,
+      vibe_text: vibe.vibe_text,
 
-      created_at: createdAt,
+      created_at: now.toISOString(),
 
-      expires_at: expiresAt,
+      expires_at: expiresAt.toISOString(),
 
-      // Deliberately NULL.
       user_id: null,
 
       device_id: null,
     });
 
   if (error) {
-    throw new Error(
-      `Error creating vibe for ${placeName}: ${error.message}`
-    );
+    throw error;
   }
 
   console.log(
-    `  → ${placeName}: ${vibe.tag} | expires ${expiresAt}`
+    `  Added vibe: ${vibe.vibe_tag}`
   );
-}
 
-
-async function processPlace(place) {
   console.log(
-    `\nProcessing ${place.city} → ${place.name}`
-  );
-
-  const placeId = await getOrCreatePlace(place);
-
-  await removePreviousDemoVibe(placeId);
-
-  await createDemoVibe(
-    placeId,
-    place.name
+    `  Expires: ${expiresAt.toISOString()}`
   );
 }
 
-// ============================================================
+// --------------------------------------------------
 // MAIN
-// ============================================================
+// --------------------------------------------------
 
 async function main() {
-  console.log(
-    "\n=========================================="
-  );
+  console.log("\n==============================");
+  console.log("VibeMap GitHub Action TEST");
+  console.log("==============================\n");
 
-  console.log(
-    "      VIBEMAP DEMO VIBE SEEDER"
-  );
+  for (let i = 0; i < PLACES.length; i++) {
+    const place = PLACES[i];
 
-  console.log(
-    "==========================================\n"
-  );
+    console.log(`Processing ${place.name}`);
 
-  const dublinTime = getDublinTimeParts();
+    const placeId = await getOrCreatePlace(place);
 
-  console.log(
-    `Ireland time: ${dublinTime.hour}:${String(
-      dublinTime.minute
-    ).padStart(2, "0")}`
-  );
+    const vibe = VIBES[i % VIBES.length];
 
-  /*
-   * Only run during 09:00–17:00.
-   */
-
-  if (
-    dublinTime.hour < 9 ||
-    dublinTime.hour >= 17
-  ) {
-    console.log(
-      "\nOutside demo hours (09:00–17:00)."
-    );
-
-    console.log(
-      "No demo vibes will be created.\n"
-    );
-
-    return;
+    await insertVibe(placeId, vibe);
   }
 
-  console.log(
-    "\nInside demo hours. Seeding vibes..."
-  );
-
-  for (const place of DEMO_PLACES) {
-    try {
-      await processPlace(place);
-    } catch (error) {
-      console.error(
-        `\nERROR: ${place.name}`
-      );
-
-      console.error(error.message);
-    }
-  }
-
-  console.log(
-    "\n=========================================="
-  );
-
-  console.log(
-    "Demo vibe seeding complete."
-  );
-
-  console.log(
-    "==========================================\n"
-  );
+  console.log("\nDONE!");
 }
 
 main().catch((error) => {
+  console.error("\nFAILED:");
   console.error(error);
 
   process.exit(1);
