@@ -1,0 +1,35 @@
+name: Seed VibeMap Demo Vibes
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # 09:05, 12:05 and 15:05
+    # Ireland time
+    - cron: "5 9,12,15 * * *"
+      timezone: "Europe/Dublin"
+
+jobs:
+  seed-demo-vibes:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Seed demo vibes
+        run: node scripts/seed-demo-vibes.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
